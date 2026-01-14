@@ -47,7 +47,7 @@
                     <div class="text-blue-300">Orbit State: <span id="n-val" class="text-white font-bold">1</span></div>
                     <div class="text-green-300">Energy Level: <span id="e-val" class="text-white">-13.60 eV</span></div>
                     <div class="pt-2 border-t border-slate-700">
-                        <span class="text-purple-400 font-bold uppercase text-[10px]">Angular Momentum (L = nh / 2pi):</span><br>
+                        <span class="text-purple-400 font-[10px]">Angular Momentum (L = nh / 2pi):</span><br>
                         <span id="l-val" class="text-white text-sm">1.055 × 10⁻³⁴ J·s</span>
                     </div>
                 </div>
@@ -286,10 +286,10 @@
                 html += `<b>Step 1: Calculate Energy Difference (ΔE)</b><br>`;
                 html += `ΔE = |E_final - E_initial|<br>`;
                 html += `ΔE = |${eF.toFixed(2)} eV - (${eI.toFixed(2)} eV)| = <span class="text-blue-400">${dE.toFixed(2)} eV</span><br><br>`;
-                html += `<b>Step 2: Substitution into $\lambda = hc / \Delta E$</b><br>`;
-                html += `$\lambda$ = (1.24 × 10⁻⁶ eV·m) / ${dE.toFixed(2)} eV<br><br>`;
+                html += `<b>Step 2: Substitution into wavelength = hc / ΔE </b><br>`;
+                html += `wavelength  = (1.24 × 10⁻⁶ eV·m) / ${dE.toFixed(2)} eV<br><br>`;
                 html += `<b>Step 3: Final Wavelength</b><br>`;
-                html += `$\lambda$ = <span class="text-green-400 font-bold">${wavelength.toExponential(3)} m</span>`;
+                html += `wavelength  = <span class="text-green-400 font-bold">${wavelength.toExponential(3)} m</span>`;
                 html += `</div>`;
                 log(html);
             } else if (absorbedE) {
