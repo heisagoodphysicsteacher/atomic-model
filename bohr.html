@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bohr Model Simulator - Hydrogen (Revised)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom animation for photon emission */
+        @keyframes photon-fly {
+            0% { transform: translateX(0) scale(1); opacity: 1; }
+            100% { transform: translateX(400px) scale(0.5); opacity: 0; }
+        }
+        .photon-emission {
+            animation: photon-fly 2s ease-out forwards;
+        }
+        /* Ensure status message handles line breaks nicely */
+        #status-message span { display: block; margin-bottom: 4px; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 font-sans p-4 md:p-8">
+
+    <header class="mb-8 text-center">
+        <h1 class="text-4xl font-bold text-blue-400 mb-2">Bohr's Hydrogen Atom Model</h1>
+        <p class="text-slate-400">Professor's Interactive Physics Lab v2</p>
+    </header>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <section class="lg:col-span-6 bg-slate-800 rounded-xl p-4 border border-slate-700 relative">
+            <h2 class="text-xl font-semibold mb-4 text-blue-300 flex flex-wrap justify-between items-end">
+                <span>1. Orbital View (Spatial)</span>
+                <div class="text-sm text-slate-400 text-right">
+                    Current State: n = <span id="current-n-display" class="text-white font-bold">1</span>
+                    <span id="radius-calc" class="ml-2 text-blue-200 font-mono text-xs"></span>
+                </div>
+            </h2>
+            <p class="text-xs text-slate-400 mb-2">Features: Quantized radii (r_n = n²r₁). Visualized up to n=4.</p>
+            
+            <div class="relative flex justify-center items-center bg-slate-950 rounded-lg overflow-hidden">
+                <canvas id="atomCanvas" width="500" height="500" class="max-w-full h-auto"></canvas>
+                <div id="photon-container" class="absolute top-1/2 left-1/2 w-0 h-0 pointer-events-none"></div>
+            </div>
+            <div id="status-message" class="mt-2 min-h-[4rem] text-sm font-mono bg-slate-900/80 p-3 rounded overflow-y-auto border border-slate-700">
+                System Ready. Electron in Ground State (n=1).
+            </div>
+        </section>
+
+
+        <div class="lg:col-span-6 space-y-6">
+
+            <section class="bg-slate-800 rounded-xl p-6 border border-slate-700 h-96 relative">
+                 <h2 class="text-xl font-semibold mb-4 text-green-300">2. Energy Level Diagram (E_n = -13.6 eV / n²)</h2>
+                 <p class="text-xs text-slate-400 mb-2">Diagram shows lowest 4 levels.</p>
+                 <div class="relative h-full w-full border-l-2 border-slate-500 pl-8 flex flex-col-reverse mt-8" id="energy-levels-container">
+                     <div class="absolute top-0 left-0 w-full border-t-2 border-dashed border-red-500">
+                        <span class="absolute -top-4 -left-12 text-red-400 text-xs">0 eV (Ionized)</span>
+                    </div>
+                 </div>
+            </section>
+
+            <section class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <h2 class="text-xl font-semibold mb-4 text-purple-300">3. Experiment Controls</h2>
+                
+                <div class="grid gap-6 md:grid-cols-2">
+                    <div class="bg-slate-700/50 p-4 rounded-lg">
+                        <h3 class="font-bold text-sm mb-3 text-slate-300">Quick Jump (Manual)</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="manualTransition(1)" class="n-btn px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded transition">n=1</button>
+                            <button onclick="manualTransition(2)" class="n-btn px-3 py-1 bg-slate-600 hover:bg-slate-500 rounded transition">n=2</button>
+                            <button onclick="manualTransition(3)" class="n-btn px-3 py-1 bg-slate-600 hover:bg-slate-500 rounded transition">n=3</button>
+                            <button onclick="manualTransition(4)" class="n-btn px-3 py-1 bg-slate-600 hover:bg-slate-500 rounded transition">n=4</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-700/50 p-4 rounded-lg">
+                        <h3 class="font-bold text-sm mb-3 text-yellow-300">Photon Collision (Absorption)</h3>
+                        <div class="flex gap-2">
+                            <input type="number" id="photon-energy-input" placeholder="E (eV)" step="0.01" value="10.2" class="w-28 px-2 py-1 rounded bg-slate-900 border border-slate-600 focus:border-yellow-500 outline-none">
+                            <button onclick="firePhoton()" class="px-3 py-1 bg-yellow-600 hover:bg-yellow-500 rounded transition text-sm">Fire γ</button>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">Must *exactly* match ΔE.</p>
+                    </div>
+
+                     <div class="bg-slate-700/50 p-4 rounded-lg md:col-span-2">
+                        <h3 class="font-bold text-sm mb-3 text-red-300">Electron Collision (Inelastic/Elastic)</h3>
+                        <div class="flex gap-2 items-center">
+                            <input type="number" id="electron-ke-input" placeholder="KE (eV)" step="0.01" value="12.1" class="w-40 px-2 py-1 rounded bg-slate-900 border border-slate-600 focus:border-red-500 outline-none">
+                            <button onclick="fireElectron()" class="px-3 py-1 bg-red-600 hover:bg-red-500 rounded transition text-sm">Fire e⁻</button>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">Can transfer partial energy if KE > ΔE.</p>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+
+    <script>
+        // --- Constants & State ---
+        const MAX_VISUAL_N = 4; // Only draw up to n=4 rings/levels
+        const E1 = -13.6; // Ground state energy eV
+        // hc constant in eV*m for wavelength calculation (1240 eV*nm = 1.24e-6 eV*m)
+        const HC_EV_M = 1.24e-6; 
+
+        let currentN = 1; // Current quantum number (can be > MAX_VISUAL_N)
+        let electronAngle = 0; // For animation rotation
+        let isIonized = false;
+
+        // Canvas setup
+        const canvas = document.getElementById('atomCanvas');
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        // Reduced base radius so n=4 fits (16 * 14 = 224 radius, fits in 250 half-width)
+        const baseRadius = 14; 
+
+        // DOM elements
+        const nDisplay = document.getElementById('current-n-display');
+        const radiusCalcDisplay = document.getElementById('radius-calc');
+        const statusMsg = document.getElementById('status-message');
+        const energyContainer = document.getElementById('energy-levels-container');
+        const photonContainer = document.getElementById('photon-container');
+
+        // --- Helper Functions ---
+
+        // R4: Energy Level Calculation
+        function getEnergy(n) {
+            if (n === Infinity) return 0;
+            return E1 / (n * n);
+        }
+
+        // R1: Radius Calculation for visualization
+        function getVisualRadius(n) {
+            return (n * n) * baseRadius;
+        }
+
+        function updateStatus(htmlMsg, type = 'neutral') {
+            statusMsg.innerHTML = htmlMsg;
+            statusMsg.className = "mt-2 min-h-[4rem] text-sm font-mono bg-slate-900/80 p-3 rounded overflow-y-auto border";
+            if(type === 'success') statusMsg.classList.add('text-green-300', 'border-green-900');
+            else if(type === 'error') statusMsg.classList.add('text-red-300', 'border-red-900');
+            else if(type === 'action') statusMsg.classList.add('text-yellow-300', 'border-yellow-900');
+            else statusMsg.classList.add('text-slate-300', 'border-slate-700');
+            statusMsg.scrollTop = statusMsg.scrollHeight;
+        }
+
+        // --- Visualization Core ---
+
+        function drawAtom() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (isIonized) {
+                ctx.beginPath(); ctx.arc(centerX, centerY, 10, 0, Math.PI * 2); ctx.fillStyle = 'red'; ctx.fill(); ctx.closePath();
+                ctx.fillStyle = 'white'; ctx.fillText("+", centerX-4, centerY+4);
+                return;
+            }
+
+            // 1. Draw Nucleus
+            ctx.beginPath(); ctx.arc(centerX, centerY, 8, 0, Math.PI * 2); ctx.fillStyle = '#ef4444'; ctx.fill(); ctx.closePath();
+
+            // 2. Draw allowed orbits (R2) - Only up to MAX_VISUAL_N
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1;
+            for (let i = 1; i <= MAX_VISUAL_N; i++) {
+                ctx.beginPath(); ctx.arc(centerX, centerY, getVisualRadius(i), 0, Math.PI * 2); ctx.stroke(); ctx.closePath();
+            }
+
+            // 3. Draw Orbiting Electron
+            // Determine visual N (clamp to MAX_VISUAL_N if physically higher)
+            const visualN = Math.min(currentN, MAX_VISUAL_N);
+            const currentRadius = getVisualRadius(visualN);
+            
+            // R5: Speed slows down at higher orbits
+            electronAngle += 0.05 / visualN; 
+            const electronX = centerX + currentRadius * Math.cos(electronAngle);
+            const electronY = centerY + currentRadius * Math.sin(electronAngle);
+
+            // Electron dot
+            ctx.beginPath(); ctx.arc(electronX, electronY, 5, 0, Math.PI * 2); ctx.fillStyle = '#3b82f6'; ctx.fill();
+            
+            // Highlight current orbit
+            ctx.beginPath(); ctx.arc(centerX, centerY, currentRadius, 0, Math.PI * 2); ctx.lineWidth = 2; ctx.strokeStyle = '#60a5fa'; ctx.stroke(); ctx.closePath();
+
+            requestAnimationFrame(drawAtom);
+        }
+
+        function drawEnergyLevels() {
+            // Reset container but keep 0eV line
+            energyContainer.innerHTML = '<div class="absolute top-0 left-0 w-full border-t-2 border-dashed border-red-500"><span class="absolute -top-4 -left-12 text-red-400 text-xs">0 eV (Ionized)</span></div>';
+            
+            // Determine visual N for highlighting
+            const visualN = Math.min(currentN, MAX_VISUAL_N);
+
+            for (let n = 1; n <= MAX_VISUAL_N; n++) {
+                const energy = getEnergy(n);
+                // Map energy range [-13.6, 0] to percentage height. Using n^2 scaling for visual spacing.
+                const heightPct = (1 - (1/(n*n))) * 90; 
+
+                const levelEl = document.createElement('div');
+                let classes = "absolute left-0 w-full border-t-2 transition-all duration-500 ";
+                // Highlight if it's the current visual level and not ionized
+                classes += (n === visualN && !isIonized) ? "border-green-400 text-green-300 shadow-[0_0_10px_rgba(74,222,128,0.3)]" : "border-slate-600 text-slate-400";
+                levelEl.className = classes;
+                levelEl.style.bottom = `${heightPct}%`;
+                
+                let label = `n=${n}`;
+                // Add indicator if actual N is higher than visualized N
+                if (n === MAX_VISUAL_N && currentN > MAX_VISUAL_N && !isIonized) {
+                    label = `n=${currentN} (Shown as n=4)`;
+                }
+
+                levelEl.innerHTML = `
+                    <span class="absolute -top-3 -left-12 text-xs whitespace-nowrap">${label}</span>
+                    <span class="absolute -top-3 right-0 text-xs">${energy.toFixed(2)} eV</span>
+                `;
+                energyContainer.appendChild(levelEl);
+            }
+        }
+
+        function updateUIState() {
+            nDisplay.textContent = isIonized ? "Ionized" : currentN;
+            
+            // New Requirement 1: Radius Calculation Display
+            if (isIonized) {
+                radiusCalcDisplay.textContent = "(r → ∞)";
+            } else {
+                const rSquared = currentN * currentN;
+                radiusCalcDisplay.textContent = `(r_${currentN} = ${currentN}²r₁ = ${rSquared}r₁)`;
+            }
+
+            // Update manual button styles (only highlights 1-4)
+            document.querySelectorAll('.n-btn').forEach((btn, index) => {
+                const n = index + 1;
+                if (n === currentN && !isIonized) {
+                    btn.classList.remove('bg-slate-600'); btn.classList.add('bg-blue-600', 'ring-2', 'ring-blue-300');
+                } else {
+                    btn.classList.remove('bg-blue-600', 'ring-2', 'ring-blue-300'); btn.classList.add('bg-slate-600');
+                }
+            });
+            drawEnergyLevels();
+        }
+
+        // Visual effect for emission
+        function emitPhotonVisual(energy) {
+            const photon = document.createElement('div');
+            photon.className = `photon-emission absolute h-5 w-16 bg-yellow-400/80 rounded-full blur-[1px] flex items-center justify-center text-[10px] text-black font-bold border-2 border-yellow-200`;
+            photon.innerHTML = `γ<br>${energy.toFixed(2)}eV`;
+            photon.style.transform = `rotate(${Math.random()*30 - 15}deg)`; // Slight random angle
+            photonContainer.appendChild(photon);
+            setTimeout(() => photon.remove(), 2000);
+        }
+
+        // --- Core Physics Logic (Transitions) ---
+
+        function changeState(targetN) {
+            if (isIonized) return;
+            if (targetN === currentN) return;
+
+            const initialE = getEnergy(currentN);
+            const finalE = getEnergy(targetN);
+            const deltaE = finalE - initialE;
+            const absDeltaE = Math.abs(deltaE);
+
+            if (targetN < currentN) {
+                // R8: Emission (Dropping level)
+                emitPhotonVisual(absDeltaE);
+
+                // New Requirement 2: Wavelength Calculation
+                // lambda (m) = hc (eV*m) / E (eV)
+                const wavelengthMeters = HC_EV_M / absDeltaE;
+                // Format to scientific notation (e.g., 1.23e-7)
+                const wavelengthFormatted = wavelengthMeters.toExponential(2);
+
+                let msg = `<span><strong>De-excitation:</strong> n=${currentN} → n=${targetN}.</span>`;
+                msg += `<span>Energy Released ΔE = ${initialE.toFixed(2)} - (${finalE.toFixed(2)}) = <strong>${absDeltaE.toFixed(2)} eV</strong>.</span>`;
+                msg += `<span class="mt-2 border-t border-green-800 pt-1"><strong>Wavelength Calculation:</strong></span>`;
+                msg += `<span>λ = hc / ΔE = (1.24×10⁻⁶ eV·m) / ${absDeltaE.toFixed(2)} eV</span>`;
+                msg += `<span>Resulting λ = <strong>${wavelengthFormatted} m</strong></span>`;
+                
+                updateStatus(msg, 'success');
+
+            } else {
+                 // Excitation
+                 updateStatus(`<span><strong>Excitation:</strong> Absorbed energy. Jumped from n=${currentN} to n=${targetN}.</span><span>ΔE absorbed = ${absDeltaE.toFixed(2)} eV.</span>`, 'action');
+            }
+
+            currentN = targetN;
+            updateUIState();
+        }
+
+
+        // --- Interaction Handlers ---
+
+        function manualTransition(n) {
+            if(isIonized) {
+                 isIonized = false;
+                 currentN = 1; // Reset to ground on manual override
+                 updateStatus("System reset from ionized state.", 'neutral');
+            }
+            changeState(n);
+        }
+
+        // R7: Photon Collision Logic
+        function firePhoton() {
+            if (isIonized) { updateStatus("Atom already ionized.", 'error'); return; }
+            const input = document.getElementById('photon-energy-input');
+            const photonE = parseFloat(input.value);
+            if (isNaN(photonE) || photonE <= 0.01) { updateStatus("Invalid photon energy.", 'error'); return; }
+
+            const currentE = getEnergy(currentN);
+
+            // Check for Ionization
+            // Use a small epsilon for floating point comparison safety near 0
+            if (photonE >= Math.abs(currentE) - 0.001) {
+                isIonized = true;
+                const excessKE = photonE - Math.abs(currentE);
+                updateStatus(`<span><strong>Ionization!</strong> Photon E=${photonE.toFixed(2)}eV ≥ Ionization Energy (${Math.abs(currentE).toFixed(2)}eV).</span><span>Electron escapes with KE = ${Math.max(0, excessKE).toFixed(2)} eV.</span>`, 'error');
+                updateUIState();
+                return;
+            }
+
+            // Check for exact match excitation
+            // We now check much higher than MAX_VISUAL_N
+            for (let n = currentN + 1; n <= 20; n++) { 
+                 const higherE = getEnergy(n);
+                 const deltaE = higherE - currentE;
+                 // Tolerance of 0.01 eV for "exact" match
+                 if (Math.abs(photonE - deltaE) < 0.01) {
+                     updateStatus(`Photon matches transition ΔE (n=${currentN}→${n}). Photon absorbed.`, 'action');
+                     changeState(n);
+                     return;
+                 }
+            }
+
+            updateStatus(`Photon E=${photonE.toFixed(2)}eV does not match any allowed transition from n=${currentN}. Photon passes through (transparent).`, 'neutral');
+        }
+
+        // R6: Electron Collision Logic
+        function fireElectron() {
+            if (isIonized) { updateStatus("Atom already ionized.", 'error'); return; }
+            const input = document.getElementById('electron-ke-input');
+            const incomingKE = parseFloat(input.value);
+            if (isNaN(incomingKE) || incomingKE <= 0) { updateStatus("Invalid electron KE.", 'error'); return; }
+
+            const currentE = getEnergy(currentN);
+            
+            // Check if collision has enough energy to ionize
+            if (incomingKE >= Math.abs(currentE)) {
+                 isIonized = true;
+                 const remainingKE = incomingKE - Math.abs(currentE);
+                 updateStatus(`<span><strong>Ionizing Collision!</strong> Incoming KE=${incomingKE.toFixed(2)}eV.</span><span>Atom ionized. Colliding electron leaves with ${remainingKE.toFixed(2)} eV.</span>`, 'error');
+                 updateUIState();
+                 return;
+            }
+
+            // Find highest possible excitation level
+            let bestTargetN = currentN;
+            let energyUsed = 0;
+
+            // Check up to very high levels (e.g., n=20)
+            for (let n = 20; n > currentN; n--) {
+                const higherE = getEnergy(n);
+                const deltaE = higherE - currentE;
+                
+                if (incomingKE >= deltaE) {
+                    bestTargetN = n;
+                    energyUsed = deltaE;
+                    break; // Found highest possible jump
+                }
+            }
+
+            if (bestTargetN > currentN) {
+                // Inelastic collision
+                const remainingKE = incomingKE - energyUsed;
+                updateStatus(`<span><strong>Inelastic Collision:</strong> Incoming KE=${incomingKE.toFixed(2)}eV caused excitation n=${currentN}→${bestTargetN} (ΔE=${energyUsed.toFixed(2)}eV).</span><span>Colliding electron leaves with KE=${remainingKE.toFixed(2)}eV.</span>`, 'action');
+                // Bug Fix 1: No longer clamping to MAX_VISUAL_N
+                changeState(bestTargetN); 
+            } else {
+                // Elastic collision
+                const nextE = getEnergy(currentN + 1);
+                const nextDelta = nextE - currentE;
+                updateStatus(`<span><strong>Elastic Collision:</strong> Incoming KE=${incomingKE.toFixed(2)}eV not enough for next level n=${currentN+1} (Needs ${nextDelta.toFixed(2)}eV).</span><span>No energy transferred.</span>`, 'neutral');
+            }
+        }
+
+        // --- Initialization ---
+        drawAtom(); // Start animation loop
+        updateUIState();
+
+    </script>
+</body>
+</html>
